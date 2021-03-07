@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+        }
+        .cell{
+            display: inline-block;
+            width:6px;
+            height:6px;
+            background-color: grey;
+            border-bottom: solid 1px white;
+            border-right:solid 1px white;
+            vertical-align: middle;
+        }
+        #container{
+            width: 700px;
+            display:flex;
+            flex-wrap:wrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <button onclick="localStorage['map'] = JSON.stringify(map)">save</button>
+    <script>
+        let map = localStorage['map'] ? JSON.parse(localStorage['map']) : Array(10000).fill(0)
+        let mousedown = false
+        let clear = false
+        let container = document.getElementById("container")
+        for(let x = 0; x < 100; x++){
+            for(let y = 0; y < 100; y++){
+                let cell = document.createElement("div")
+                cell.classList.add("cell")
+                if(map[x * 100 + y] == 1){
+                    cell.style.backgroundColor = "black"
+                } 
+                cell.addEventListener("mousemove",()=>{
+                    if(mousedown){
+                        //按下 左键建墙，右键清除
+                        if(clear){
+                            cell.style.backgroundColor = ""
+                            map[100 * x + y] = 0
+                        }
+                        else{
+                            cell.style.backgroundColor = "black"
+                            map[100 * x + y] = 1
+                        }
+                    }
+                })
+                container.appendChild(cell)
+            }
+        }
+        document.addEventListener('mousedown',e => {
+            mousedown = true
+            clear = (e.which === 3)
+        })
+        document.addEventListener('mouseup',() => mousedown = false )
+        //避免弹出菜单
+        document.addEventListener('contextmenu',e => e.preventDefault())
+        function sleep(n){
+            return new Promise((resolve,reject)=>{
+                setTimeout(resolve,n)
+            })
+        }
+        async function findPath(map,start,end){
+            let table = Object.create(map) //table里存上一节点
+            let queue = [start]
+            async function insert(x, y, pre){
+                //在0-99之外，超过边界
+                if(x < 0 || x >= 100 || y < 0 || y>= 100){
+                    return
+                }
+                //遇到墙或者搜索过的点 1或2
+                if(table[x * 100 + y]){
+                    return;
+                }
+                //await sleep(30)
+                container.children[x * 100 + y].style.backgroundColor = 'lightgreen'
+                //map[x * 100 + y] = 2
+                table[x * 100 + y] = pre
+                queue.push([x, y])
+            }
+            while(queue.length){
+                let [x, y] = queue.shift()
+                //console.log(x, y)
+                if(x === end[0] && y === end[1]){
+                    let path = []
+                    while(x != start[0] || y != start[1] ){ 
+                        path.push(map[x * 100 + y])
+                        let pre =  table[x * 100 + y]                       
+                        x = pre[0]
+                        y = pre[1]
+                        
+                        await sleep(30)
+                        container.children[x * 100 + y].style.backgroundColor = 'purple'
+                    }
+                    return path
+                }
+                await insert(x - 1, y, [x,y])
+                await insert (x, y - 1, [x,y])
+                await insert(x + 1,y, [x,y])
+                await insert(x, y + 1, [x,y])
+
+                await insert(x - 1, y - 1, [x,y])
+                await insert(x + 1, y - 1, [x,y])
+                await insert(x + 1, y + 1, [x,y])
+                await insert(x - 1, y + 1, [x,y])
+
+
+            }
+            return null
+        }
+    </script>
+</body>
+</html>
