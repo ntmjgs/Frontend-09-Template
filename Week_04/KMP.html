@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        function kmp(source, pattern){
+            //计算表格
+            let table = new Array(pattern.length).fill(0)
+            //i用来判断自重复的后缀位置
+            //j用来判断前缀，代表从0开始匹配到的个数
+            {
+                let i = 1, j = 0
+                while(i < pattern.length){
+                    if(pattern[i] == pattern[j]){
+                        ++i, ++j;
+                        table[i] = j
+                    }
+                    else{
+                        if(j > 0){
+                            j = table[j];
+                        }
+                        else{
+                            ++i
+                        }
+                    }
+                }
+            }
+            //匹配模式串
+            {
+                //i-source, j-pattern
+                let i = 0, j = 0
+                while(i < source.length){
+                    
+                    if(source[i] == pattern[j]){
+                        ++i, ++j;
+
+                    }
+                    else{
+                        if(j > 0){
+                            j = table[j];
+                        }
+                        else{
+                            ++i
+                        }
+                    }
+                    if(j == pattern.length){
+                        return true
+                    }
+                }
+                return false
+            }
+
+        }
+
+        console.log(kmp('abc','b'))
+    </script>
+</body>
+</html>
