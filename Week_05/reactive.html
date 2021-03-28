@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <input id = "r" type="range" min = 0 max = 255>
+    <input id = "g" type="range" min = 0 max = 255>
+    <input id = "b" type="range" min = 0 max = 255>
+    <div id="color" style="width:20px;height:20px"></div>
+    <script>
+        //保存对象及其对应的callback  {obj:{prop:callback}}
+        let callbacks = new Map()
+        //effect中用到的响应式对象[obj,prop]
+        let usedReactives = []
+        //
+        let reactives = new Map()
+        let object = {
+            r: 1,
+            g: 1,
+            b: 1
+        }
+        let po = reactive(object)
+
+        effect(() => {
+            document.getElementById("r").value = po.r
+            document.getElementById("g").value = po.g
+            document.getElementById("b").value = po.b
+            
+            
+        })
+        document.getElementById("r").addEventListener("input",()=>{
+            po.r = event.target.value
+        })
+        document.getElementById("g").addEventListener("input",()=>{
+            po.g = event.target.value
+        })
+        document.getElementById("b").addEventListener("input",()=>{
+            po.b = event.target.value
+        })
+        effect(()=>{
+            document.getElementById("color").style.backgroundColor = `rgb(${po.r},${po.g},${po.b})`
+        })
+        //数据改变时触发effect回调函数
+        function effect(callback){
+            //记录callback相关的响应式变量：1.调用一遍callback() 2.在get()里监听相关的变量，记录到usedReactives里
+            usedReactives = []
+            callback()
+            for(let reactivity of usedReactives){
+                if(!callbacks.has(reactivity[0])){
+                    callbacks.set(reactivity[0],new Map())
+                }
+                if(!callbacks.get(reactivity[0]).has(reactivity[1])){
+                    callbacks.get(reactivity[0]).set(reactivity[1],[])
+                }
+                callbacks.get(reactivity[0]).get(reactivity[1]).push(callback)
+            }
+        }
+        //创建响应式对象
+        function reactive(object){
+            if(reactives.has(object)){
+                return reactives.get(object)
+            }
+            let proxy =  new Proxy(object,{
+                set(obj,prop,val){
+                    obj[prop] = val
+
+                    if(callbacks.get(obj) && callbacks.get(obj).get(prop)){
+                        for(let callback of callbacks.get(obj).get(prop)){
+                            callback()
+                        }
+                    }
+
+
+                    return obj[prop]
+
+                },
+                get(obj,prop){
+                    usedReactives.push([obj,prop])
+                    //如果是对象，继续调用reactive()
+                    if(typeof obj[prop] == 'object'){
+                        return reactive(obj[prop])
+                    }
+                    return obj[prop]
+                }
+            })
+            reactives.set(object.proxy)
+            return proxy
+        }
+    </script>
+</body>
+</html>
